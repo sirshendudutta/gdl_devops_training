@@ -9,21 +9,13 @@
 # Security Group for the internet-facing ALB
 resource "aws_security_group" "web_alb_sg" {
   name        = "${var.module_prefix}-web-alb-sg"
-  description = "enable http/https access on port 80/443"
+  description = "enable http access on port 80"
   vpc_id      = var.vpc_id
 
   ingress {
     description = "http access"
     from_port   = 80
     to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_cidrs
-  }
-  # Ready for SSL/TLS certificate future use:
-  ingress {
-    description = "https access"
-    from_port   = 443
-    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = var.allowed_cidrs
   }

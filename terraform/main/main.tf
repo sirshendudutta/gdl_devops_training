@@ -1,20 +1,3 @@
-#----- Network
-data "aws_acm_certificate" "issued" {
-  count       = var.enable_r53 ? 1 : 0
-  domain      = var.certificate_domain
-  statuses    = ["ISSUED"]
-  most_recent = true
-}
-
-module "route53" {
-  count              = var.enable_r53 ? 1 : 0
-  source             = "../modules/r53"
-  alb_dns_name       = module.web_alb.alb_dns_name
-  alb_hosted_zone_id = module.web_alb.alb_hosted_zone_id
-  sub_domain         = var.sub_domain
-  hosted_zone_name   = var.hosted_zone_name
-}
-
 module "network" {
   source             = "../modules/network"
   region             = var.region
@@ -40,7 +23,7 @@ module "security-group" {
 locals {
   ssm_parameter_path_prefix = var.ssm_parameter_path_prefix
   backend_base_url          = "http://${module.internal_alb.alb_dns_name}"
-  web_origin                = var.enable_r53 ? "https://${var.sub_domain}.${var.hosted_zone_name}" : "http://${module.web_alb.alb_dns_name}"
+  web_origin                = "http://${module.web_alb.alb_dns_name}"
   database_url              = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${module.rds.db_endpoint}:${module.rds.db_port}/${module.rds.db_name}"
 }
 
@@ -60,9 +43,8 @@ module "web_alb" {
   sub_b_id                       = module.network.pub_sub_nat_b_id
   vpc_id                         = module.network.vpc_id
   is_internal                    = false
-  enable_https                   = var.enable_r53
-  enable_http_redirect           = var.enable_r53
-  https_listener_certificate_arn = var.enable_r53 ? data.aws_acm_certificate.issued[0].arn : ""
+  enable_https                   = false
+  enable_http_redirect           = false
 }
 
 module "web_asg" {

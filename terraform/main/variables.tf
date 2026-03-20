@@ -48,18 +48,6 @@ variable "db_username" {
 variable "db_password" {
   default = "password"
 }
-variable "hosted_zone_name" {
-  default = "emmanuelengineering.com"
-}
-variable "sub_domain" {
-  default = "threetierapp"
-}
-variable "enable_r53" {
-  default = false
-}
-variable "certificate_domain" {
-  default = ""
-}
 variable "frontend_ecr_repo_url" {}
 variable "backend_ecr_repo_url" {}
 variable "ssm_parameter_path_prefix" {}
