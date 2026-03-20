@@ -13,7 +13,7 @@ A production-inspired demo that validates a three-tier architecture with a Next.
 - **Frontend:** Next.js (React 19), MUI, Tailwind CSS
 - **Backend:** NestJS, Prisma ORM
 - **Database:** PostgreSQL 18
-- **Infrastructure:** Terraform, AWS (VPC, ALB, ASG, RDS, Route 53, ACM)
+- **Infrastructure:** Terraform, AWS (VPC, NAT Gateway, ALB, ASG, RDS, Route 53, ACM)
 - **Containers:** Docker, ECR
 
 ## Functionality

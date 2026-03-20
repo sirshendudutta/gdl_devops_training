@@ -5,20 +5,28 @@
 - Network
   - VPC
   - Internet Gateway for internet access
-  - 2 Availability Zones (Data) (HA design)
+  - 2 Availability Zones (HA design)
   - Subnets
-    - 2 Public subnets for the Web Tier
-    - 2 Public subnets for the App Tier
+    - 2 Public subnets for NAT Gateways (+ internet-facing ALB)
+    - 2 Private subnets for the Web Tier (frontend)
+    - 2 Private subnets for the App Tier (backend)
     - 2 Private subnets for the RDS Multi-AZ deployment
+  - 2 Elastic IPs (one per NAT Gateway)
+  - 2 NAT Gateways (one per AZ, in public subnets)
   - Subnet group
-  - Route table
-    - Routes from all public subnets (4) to IGW
+  - Route tables
+    - 1 Public RT: NAT subnets -> IGW
+    - 2 Private RTs: one per AZ, private subnets -> NAT Gateway
+  - 6 Route table associations
+    - 2 NAT subnets -> public RT (IGW)
+    - 2 Web subnets -> private RT (NAT per AZ)
+    - 2 App subnets -> private RT (NAT per AZ)
 - RDS Multi-AZ (2 AZs) PostgreSQL (18) deployment
 - Load Balancing
-  - 1 internet-facing ALB for the Web Tier (target group)
+  - 1 internet-facing ALB in the public NAT subnets (target group)
     - HTTP listener
     - HTTPS listener
-  - 1 internal ALB in between the Web Tier (frontend) and the App Tier (backend)
+  - 1 internal ALB in the private App Tier subnets, between the Web Tier (frontend) and the App Tier (backend)
 - Security groups
   - 1 for the Web Tier (ASG)
   - 1 for the App Tier (ASG)
@@ -60,16 +68,24 @@ Network (terraform\modules\network)
 
 - VPC
 - Internet Gateway for internet access
-- 2 Availability Zones (Data) (HA design)
+- 2 Availability Zones (HA design)
 - Subnets
-  - 2 Public subnets for the Web Tier
-  - 2 Public subnets for the App Tier
+  - 2 Public subnets for NAT Gateways (+ internet-facing ALB)
+  - 2 Private subnets for the Web Tier (frontend)
+  - 2 Private subnets for the App Tier (backend)
   - 2 Private subnets for the RDS Multi-AZ deployment
   - Subnet group
     - RDS receives a group, not a list
-    - Includes the 2 Private subnets
-- Route table
-  - Routes from all public subnets (x4) to IGW
+    - Includes the 2 Private data subnets
+- 2 Elastic IPs (one per NAT Gateway)
+- 2 NAT Gateways (one per AZ, in public subnets)
+- Route tables
+  - 1 Public RT: NAT subnets -> IGW
+  - 2 Private RTs: one per AZ, private subnets -> NAT Gateway
+- 6 Route table associations
+  - 2 NAT subnets -> public RT (IGW)
+  - 2 Web subnets -> private RT (NAT per AZ)
+  - 2 App subnets -> private RT (NAT per AZ)
 
 RDS (terraform\modules\rds)
 
@@ -81,10 +97,10 @@ RDS (terraform\modules\rds)
 
 Load Balancing (terraform\modules\alb)
 
-- 1 internet-facing ALB for the Web Tier (target group)
+- 1 internet-facing ALB in the public NAT subnets (target group)
   - HTTP listener
   - HTTPS listener
-- 1 internal ALB in between the Web Tier (frontend) and the App Tier (backend)
+- 1 internal ALB in the private App Tier subnets, between the Web Tier (frontend) and the App Tier (backend)
 
 Security groups (terraform\modules\security-group)
 
