@@ -1,0 +1,15 @@
+aws_profile  = "default"
+region       = "us-east-1"
+project_name = "three-tier-demo"
+
+// Replace with your own CIDR block or blocks to allow access to the application. This is used in the security group for the ALB, so it controls who can access the application. You can use your public IP address with a /32 suffix to allow only yourself, or a larger CIDR block if you want to allow a range of addresses.
+allowed_cidrs = [ "111.111.111.111/32" ]
+
+db_name     = "ThreeTierDemoDB"
+db_username = "appuser"
+db_password = "change_me"
+
+# This comes from the output of the stage 1:
+frontend_ecr_repo_url     = "<your_account_id>.dkr.ecr.us-east-1.amazonaws.com/three-tier-demo-bootstrap-frontend"
+backend_ecr_repo_url      = "<your_account_id>.dkr.ecr.us-east-1.amazonaws.com/three-tier-demo-bootstrap-backend"
+ssm_parameter_path_prefix = "/three-tier-demo-bootstrap"
