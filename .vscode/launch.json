@@ -1,0 +1,57 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Next.js dev server — server-side debugging enabled
+      "name": "Frontend: Dev",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "cwd": "${workspaceFolder}/frontend",
+      "env": {
+        "INTERNAL_API_BASE_URL": "http://localhost:3001"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "serverReadyAction": {
+        "pattern": "Local:\\s+http://localhost:(\\d+)",
+        "uriFormat": "http://localhost:%s",
+        "action": "openExternally"
+      }
+    },
+    {
+      // NestJS dev server — debugger attaches via child-process inspector (port 9229)
+      "name": "Backend: Dev",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:debug"],
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "NODE_ENV": "development",
+        "PORT": "3001",
+        "DATABASE_URL": "postgresql://postgres:secret@localhost:5555/three-tier-demo"
+      },
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ],
+  "compounds": [
+    {
+      // Frontend + Backend only (assumes DB is already running)
+      "name": "Fullstack: Dev",
+      "configurations": ["Frontend: Dev", "Backend: Dev"],
+      "stopAll": true
+    },
+    {
+      // Starts DB via docker compose, then Frontend + Backend
+      "name": "All: Dev (+ DB)",
+      "configurations": ["Frontend: Dev", "Backend: Dev"],
+      "preLaunchTask": "DB: docker compose up",
+      "stopAll": true
+    }
+  ]
+}

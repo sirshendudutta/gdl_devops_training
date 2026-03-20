@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:18
+    container_name: pg-container
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: three-tier-demo
+    volumes:
+      - ./pgdata:/var/lib/postgresql
+    ports:
+      - "5555:5432"
+
+volumes:
+  pgdata:
