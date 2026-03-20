@@ -25,7 +25,6 @@
 - Load Balancing
   - 1 internet-facing ALB in the public NAT subnets (target group)
     - HTTP listener
-    - HTTPS listener
   - 1 internal ALB in the private App Tier subnets, between the Web Tier (frontend) and the App Tier (backend)
 - Security groups
   - 1 for the Web Tier (ASG)
@@ -37,8 +36,6 @@
   - 1 Auto Scaling Group (2 AZ span) for the Web tier
   - 1 Auto Scaling Group (2 AZ span) for the App Tier
 - IAM roles and instance profiles
-- R53 Type A record
-- ACM TLS/SSL Certificate (data)
 - SSM Parameters
 - ECR repositories
 
@@ -46,21 +43,9 @@
 
 ## Detailed list
 
-> Special feature: flag `enable-r53` will toggle between these behaviors.
-
-Enabled
-
-- R53 Type A record is created
-- HTTPS listener is added
-  - Pull ACM Certificate
-- HTTP listener redirects to HTTPS
-- Access to the app is through the custom FQDN
-
-Disabled
-
 - Access to the app is through the ALB DNS endpoint
-- No R53 record
-- No HTTPS listener
+- Public access is HTTP-only
+- No HTTPS listener or HTTP-to-HTTPS redirect
 
 Resources
 
@@ -99,7 +84,7 @@ Load Balancing (terraform\modules\alb)
 
 - 1 internet-facing ALB in the public NAT subnets (target group)
   - HTTP listener
-  - HTTPS listener
+  - No HTTPS listener in this variant
 - 1 internal ALB in the private App Tier subnets, between the Web Tier (frontend) and the App Tier (backend)
 
 Security groups (terraform\modules\security-group)
@@ -116,7 +101,7 @@ Security groups (terraform\modules\security-group)
 - 1 for the Data Tier (RDS)
   - Allow inbound traffic from the App Tier SG (RDS Multi-AZ has a single endpoint)
 - 1 for the internet-facing ALB
-  - Allow inbound internet traffic (HTTP and HTTPS)
+  - Allow inbound internet traffic (HTTP)
   - Allow all outbound
 - 1 for the internal ALB
   - Allow inbound traffic from Web Tier SG
@@ -155,14 +140,6 @@ ECR (terraform\ecr)
 - Backend repository
 - Lifecycle policy
 
-R53 Type A record (terraform\modules\r53)
-
-- Hosted Zone provided via tfvars: hosted_zone_name
-
-ACM TLS/SSL Certificate (data)
-
-- Provided via tfvars: certificate_domain
-
 SSM Parameters (terraform\modules\ssm)
 
 - backend_image_tag
@@ -191,7 +168,6 @@ terraform/
    ├─ ecr/
    ├─ iam/
    ├─ network/
-   ├─ r53/
    ├─ rds/
    ├─ security-group/
    └─ ssm/

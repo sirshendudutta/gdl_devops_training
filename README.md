@@ -13,7 +13,7 @@ A production-inspired demo that validates a three-tier architecture with a Next.
 - **Frontend:** Next.js (React 19), MUI, Tailwind CSS
 - **Backend:** NestJS, Prisma ORM
 - **Database:** PostgreSQL 18
-- **Infrastructure:** Terraform, AWS (VPC, NAT Gateway, ALB, ASG, RDS, Route 53, ACM)
+- **Infrastructure:** Terraform, AWS (VPC, NAT Gateway, ALB, ASG, RDS)
 - **Containers:** Docker, ECR
 
 ## Functionality
@@ -197,6 +197,7 @@ terraform -chdir=terraform/main apply
 > **Note:** This assumes the local environment already has AWS credentials configured.
 > Image tags are controlled via SSM parameters under
 > `/${project_name}/frontend/image_tag` and `/${project_name}/backend/image_tag`.
+> The stack outputs the public application URL as the internet-facing ALB DNS endpoint over HTTP.
 
 ### Stage 3: One-Time DB Initialization (Seed-Once Endpoint)
 
