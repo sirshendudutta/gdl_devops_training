@@ -36,15 +36,13 @@ module "iam" {
 
 #----- Web Tier
 module "web_alb" {
-  source                         = "../modules/alb"
-  module_prefix                  = "${var.project_name}-web"
-  alb_sg_id                      = module.security-group.web_alb_sg_id
-  sub_a_id                       = module.network.pub_sub_nat_a_id
-  sub_b_id                       = module.network.pub_sub_nat_b_id
-  vpc_id                         = module.network.vpc_id
-  is_internal                    = false
-  enable_https                   = false
-  enable_http_redirect           = false
+  source        = "../modules/alb"
+  module_prefix = "${var.project_name}-web"
+  alb_sg_id     = module.security-group.web_alb_sg_id
+  sub_a_id      = module.network.pub_sub_nat_a_id
+  sub_b_id      = module.network.pub_sub_nat_b_id
+  vpc_id        = module.network.vpc_id
+  is_internal   = false
 }
 
 module "web_asg" {
@@ -66,15 +64,13 @@ module "web_asg" {
 
 #----- App Tier
 module "internal_alb" {
-  source               = "../modules/alb"
-  module_prefix        = "${var.project_name}-internal"
-  alb_sg_id            = module.security-group.internal_alb_sg_id
-  sub_a_id             = module.network.pri_sub_app_a_id
-  sub_b_id             = module.network.pri_sub_app_b_id
-  vpc_id               = module.network.vpc_id
-  is_internal          = true
-  enable_https         = false
-  enable_http_redirect = false
+  source        = "../modules/alb"
+  module_prefix = "${var.project_name}-internal"
+  alb_sg_id     = module.security-group.internal_alb_sg_id
+  sub_a_id      = module.network.pri_sub_app_a_id
+  sub_b_id      = module.network.pri_sub_app_b_id
+  vpc_id        = module.network.vpc_id
+  is_internal   = true
 }
 
 module "app_asg" {

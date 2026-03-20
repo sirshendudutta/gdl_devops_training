@@ -47,42 +47,9 @@ resource "aws_lb_target_group" "alb_target_group" {
 
 # ALB Listener (HTTP -> forward to target group)
 resource "aws_lb_listener" "alb_http_listener_forward" {
-  count             = var.enable_http_redirect ? 0 : 1
   load_balancer_arn = aws_lb.application_load_balancer.arn
   port              = 80
   protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.alb_target_group.arn
-  }
-}
-
-# ALB Listener (HTTP -> redirect to HTTPS)
-resource "aws_lb_listener" "alb_http_listener_redirect" {
-  count             = var.enable_http_redirect ? 1 : 0
-  load_balancer_arn = aws_lb.application_load_balancer.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
-  }
-}
-
-# ALB Listener (HTTPS -> forward to target group)
-resource "aws_lb_listener" "alb_https_listener" {
-  count             = var.enable_https ? 1 : 0
-  load_balancer_arn = aws_lb.application_load_balancer.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = var.https_ssl_policy
-  certificate_arn   = var.https_listener_certificate_arn
 
   default_action {
     type             = "forward"
