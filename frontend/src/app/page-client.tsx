@@ -22,7 +22,7 @@ export default function HomeClient({ instanceInfo }: HomeClientProps) {
               Three-Tier Architecture Demo
             </Typography>
             <Typography variant="h2" component="h1">
-              Testing Pipeline!
+              Testing Pipeline! (again)
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
               A single-page dashboard showcasing NextJS, NestJS, and PostgreSQL in a
