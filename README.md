@@ -145,11 +145,11 @@ Open `http://localhost:3000`.
 
 ## Cloud Deployment (3 Stages)
 
-### Stage 1: ECR (Image Registries)
+### Stage 1: Bootstrap (ECR, SSM, GitHub Actions OIDC)
 
 ```powershell
-terraform -chdir=terraform/ecr init
-terraform -chdir=terraform/ecr apply
+terraform -chdir=terraform/bootstrap init
+terraform -chdir=terraform/bootstrap apply
 ```
 
 Copy the repository URLs from the outputs and set them in `terraform/main/terraform.tfvars`:
@@ -158,7 +158,7 @@ Copy the repository URLs from the outputs and set them in `terraform/main/terraf
 - `backend_ecr_repo_url`
 - `ssm_parameter_path_prefix`
 
-The ECR stack outputs also include the SSM parameter names and prefix for image tags.
+The bootstrap stack also includes the SSM parameter names and prefix for image tags. If you set `github_repository` in `terraform/bootstrap/terraform.tfvars`, it also creates the GitHub Actions OIDC provider and least-privilege deployment role.
 
 Build and push images to ECR (use a tag such as a short git SHA or date).
 
@@ -220,6 +220,63 @@ Open an SSM Session Manager shell and trigger the endpoint from inside the app i
 
 ```sh
 curl -X POST http://localhost:80/health/db/seed-once
+```
+
+## CI/CD With GitHub Actions
+
+This repo now includes two monorepo workflows:
+
+- `.github/workflows/deploy-frontend.yml`
+- `.github/workflows/deploy-backend.yml`
+
+Behavior:
+
+- Pull requests to `main` validate only for the changed service
+- Pushes to `main` validate, build, push to ECR, update the corresponding SSM image-tag parameter, and trigger an EC2 Auto Scaling rolling instance refresh
+- `frontend/**` changes deploy only the frontend tier
+- `backend/**` changes deploy only the backend tier
+
+Required bootstrap inputs for OIDC:
+
+```hcl
+github_repository       = "<owner>/<repo>"
+deployment_project_name = "three-tier-demo-v2"
+```
+
+After `terraform -chdir=terraform/bootstrap apply` and `terraform -chdir=terraform/main apply`, configure these GitHub repository variables from Terraform outputs:
+
+- `AWS_REGION`
+- `AWS_ROLE_ARN`
+- `FRONTEND_ECR_REPO_URL`
+- `BACKEND_ECR_REPO_URL`
+- `SSM_PARAMETER_PREFIX`
+- `FRONTEND_ASG_NAME`
+- `BACKEND_ASG_NAME`
+
+Suggested mapping:
+
+- `AWS_REGION` → your AWS region, for example `us-east-1`
+- `AWS_ROLE_ARN` → `terraform/bootstrap` output `github_actions_role_arn`
+- `FRONTEND_ECR_REPO_URL` → `terraform/bootstrap` output `frontend_repository_url`
+- `BACKEND_ECR_REPO_URL` → `terraform/bootstrap` output `backend_repository_url`
+- `SSM_PARAMETER_PREFIX` → `terraform/bootstrap` output `ssm_parameter_prefix`
+- `FRONTEND_ASG_NAME` → `terraform/main` output `frontend_asg_name`
+- `BACKEND_ASG_NAME` → `terraform/main` output `backend_asg_name`
+
+Deployment flow on `push` to `main`:
+
+1. Build a Docker image tagged with the first 12 characters of the commit SHA.
+2. Push the image to the service ECR repository.
+3. Write that SHA tag into the matching SSM parameter.
+4. Start an Auto Scaling instance refresh for the matching tier.
+5. New EC2 instances boot, read the new image tag from SSM, pull the image, and register behind the load balancer.
+
+Manual rollback:
+
+```powershell
+aws ssm put-parameter --name "/<project_name>/<frontend|backend>/image_tag" --value "<previous_sha12>" --type String --overwrite
+
+aws autoscaling start-instance-refresh --auto-scaling-group-name "<asg_name>" --strategy Rolling --preferences '{"MinHealthyPercentage":50,"InstanceWarmup":180}'
 ```
 
 ## Docs

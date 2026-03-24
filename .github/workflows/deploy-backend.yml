@@ -1,0 +1,143 @@
+name: Deploy Backend
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        working-directory: backend
+        run: pnpm db:generate
+
+      - name: Lint
+        working-directory: backend
+        run: pnpm exec eslint "{src,apps,libs,test}/**/*.ts"
+
+      - name: Test
+        working-directory: backend
+        run: pnpm test -- --runInBand
+
+      - name: Build
+        working-directory: backend
+        run: pnpm build
+
+  deploy:
+    name: Deploy Backend
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      ECR_REPO_URL: ${{ vars.BACKEND_ECR_REPO_URL }}
+      SSM_PARAMETER_PREFIX: ${{ vars.SSM_PARAMETER_PREFIX }}
+      ASG_NAME: ${{ vars.BACKEND_ASG_NAME }}
+      SERVICE_NAME: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA::12}" >> "$GITHUB_ENV"
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE="${ECR_REPO_URL}:${IMAGE_TAG}"
+          docker build -t "$IMAGE" -f backend/Dockerfile backend
+          docker push "$IMAGE"
+
+      - name: Update SSM image tag
+        run: |
+          aws ssm put-parameter \
+            --name "${SSM_PARAMETER_PREFIX}/${SERVICE_NAME}/image_tag" \
+            --type String \
+            --value "${IMAGE_TAG}" \
+            --overwrite
+
+      - name: Start ASG instance refresh
+        run: |
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "${ASG_NAME}" \
+            --strategy Rolling \
+            --preferences '{"MinHealthyPercentage":50,"InstanceWarmup":120}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+          echo "INSTANCE_REFRESH_ID=${REFRESH_ID}" >> "$GITHUB_ENV"
+
+      - name: Wait for instance refresh
+        run: |
+          for attempt in {1..60}; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name "${ASG_NAME}" \
+              --instance-refresh-ids "${INSTANCE_REFRESH_ID}" \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+            echo "Refresh status: ${STATUS}"
+
+            case "$STATUS" in
+              Successful)
+                exit 0
+                ;;
+              Failed|Cancelled|RollbackFailed)
+                aws autoscaling describe-instance-refreshes \
+                  --auto-scaling-group-name "${ASG_NAME}" \
+                  --instance-refresh-ids "${INSTANCE_REFRESH_ID}"
+                exit 1
+                ;;
+            esac
+
+            sleep 30
+          done
+
+          echo "Instance refresh timed out"
+          exit 1
