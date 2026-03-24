@@ -22,7 +22,7 @@ resource "aws_autoscaling_group" "this" {
   max_size                  = var.max_size
   min_size                  = var.min_size
   desired_capacity          = var.desired_cap
-  health_check_grace_period = 300 # seconds = 5 minutes
+  health_check_grace_period = 120 # seconds = 2 minutes
   health_check_type         = var.asg_health_check_type
   vpc_zone_identifier       = [var.sub_a_id, var.sub_b_id]
   target_group_arns         = [var.tg_arn]
