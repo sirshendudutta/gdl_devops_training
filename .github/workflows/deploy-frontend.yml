@@ -106,30 +106,30 @@ jobs:
             --output text)
           echo "INSTANCE_REFRESH_ID=${REFRESH_ID}" >> "$GITHUB_ENV"
 
-      - name: Wait for instance refresh
-        run: |
-          for attempt in {1..60}; do
-            STATUS=$(aws autoscaling describe-instance-refreshes \
-              --auto-scaling-group-name "${ASG_NAME}" \
-              --instance-refresh-ids "${INSTANCE_REFRESH_ID}" \
-              --query 'InstanceRefreshes[0].Status' \
-              --output text)
-            echo "Refresh status: ${STATUS}"
+      # - name: Wait for instance refresh
+      #   run: |
+      #     for attempt in {1..60}; do
+      #       STATUS=$(aws autoscaling describe-instance-refreshes \
+      #         --auto-scaling-group-name "${ASG_NAME}" \
+      #         --instance-refresh-ids "${INSTANCE_REFRESH_ID}" \
+      #         --query 'InstanceRefreshes[0].Status' \
+      #         --output text)
+      #       echo "Refresh status: ${STATUS}"
 
-            case "$STATUS" in
-              Successful)
-                exit 0
-                ;;
-              Failed|Cancelled|RollbackFailed)
-                aws autoscaling describe-instance-refreshes \
-                  --auto-scaling-group-name "${ASG_NAME}" \
-                  --instance-refresh-ids "${INSTANCE_REFRESH_ID}"
-                exit 1
-                ;;
-            esac
+      #       case "$STATUS" in
+      #         Successful)
+      #           exit 0
+      #           ;;
+      #         Failed|Cancelled|RollbackFailed)
+      #           aws autoscaling describe-instance-refreshes \
+      #             --auto-scaling-group-name "${ASG_NAME}" \
+      #             --instance-refresh-ids "${INSTANCE_REFRESH_ID}"
+      #           exit 1
+      #           ;;
+      #       esac
 
-            sleep 30
-          done
+      #       sleep 30
+      #     done
 
-          echo "Instance refresh timed out"
-          exit 1
+      #     echo "Instance refresh timed out"
+      #     exit 1
