@@ -93,10 +93,17 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         ]
       },
       {
+        Sid    = "DescribeInstanceRefreshes"
+        Effect = "Allow"
+        Action = [
+          "autoscaling:DescribeInstanceRefreshes"
+        ]
+        Resource = "*"
+      },
+      {
         Sid    = "RefreshServiceAsgs"
         Effect = "Allow"
         Action = [
-          "autoscaling:DescribeInstanceRefreshes",
           "autoscaling:StartInstanceRefresh"
         ]
         Resource = [
