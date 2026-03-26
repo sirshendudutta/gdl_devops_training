@@ -1,7 +1,17 @@
 module "network" {
   source             = "../modules/network"
-
-}
+  region = var.region
+  module_prefix = var.project_name
+  vpc_cidr = var.vpc_cidr
+  pub_sub_nat_a_cidr = var.pub_sub_nat_a_cidr
+  pub_sub_nat_b_cidr = var.pub_sub_nat_b_cidr
+  pri_sub_web_a_cidr = var.pri_sub_web_a_cidr
+  pri_sub_web_b_cidr = var.pri_sub_web_b_cidr
+  pri_sub_app_a_cidr = var.pri_sub_app_a_cidr
+  pri_sub_app_b_cidr = var.pri_sub_app_b_cidr
+  pri_sub_data_a_cidr = var.pri_sub_data_a_cidr
+  pri_sub_data_b_cidr = var.pri_sub_data_b_cidr
+  }
 
 module "security-group" {
   source        = "../modules/security-group"
@@ -26,7 +36,13 @@ module "iam" {
 
 #----- Web Tier
 module "web_alb" {
-
+  source        = "../modules/alb"
+  module_prefix = "${var.project_name}-web"
+  alb_sg_id     = module.security-group.web_alb_sg_id
+  sub_a_id      = module.network.pub_sub_nat_a_id
+  sub_b_id      = module.network.pub_sub_nat_b_id
+  vpc_id        = module.network.vpc_id
+  is_internal   = false
 }
 
 module "web_asg" {
@@ -76,3 +92,13 @@ module "app_asg" {
 }
 
 #----- Data Tier
+module "rds" {
+  source = "../modules/rds"
+  module_prefix = var.project_name
+  db_sg_id = module.security-group.db_sg_id
+  pri_sub_data_a_id = module.network.pri_sub_data_a_id
+  pri_sub_data_b_id = module.network.pri_sub_data_b_id
+  db_name     = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
+}
